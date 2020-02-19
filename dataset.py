@@ -3,25 +3,62 @@ import glob
 import os
 import cv2
 
+# Dataset information
+################################################################################
+#   This data folder has the following structure:
+#   synhead2_release-|
+        #            |-background-|
+        #                         |-a01.png
+        #                         |...
+        #            |-BIWI-|
+        #                   |-00.csv (movement csvs)
+        #                   |-...
+        #                   |-23.csv
+        #                   |-f01-| (model folders)
+        #                   |-...-|
+        #                   |-m01-|
+        #                         |-00 -| (movement folders per model)
+        #                         |-...-|
+        #                         |-23 -|
+        #                               |-00.png (model pictures per movement )
+        #            |-softkinect-| (same structure of BIWI)
+        #            |-kinect-| (same structure of BIWI)
+        #            |-breitenstein-| (same structure of BIWI)
+################################################################################
 data_sets = ['BIWI', 'breitenstein', 'kinect', 'softkinect']
 models = ['f01', 'f02', 'f03', 'f04', 'f05', 'm01', 'm02', 'm03', 'm04', 'm05']
 SYNHEAD_imW = 400
 SYNHEAD_imH = 400
 
+# Numpy random seed for constraining random variables
 np.random.seed(42)
 
+# Generate video frame list given a sub-dataset (data_dir), a 3D model number (model),
+#   movement number (movement), and timestep (time_step)
 def generate_video_frame_list(data_dir, model, movement, time_step):
+    # Glob.glob breaks apart the concatinated string path to the .csv files
     tracks = glob.glob(os.path.join(data_dir, '*.csv'))
+    # Sort the track files
     tracks.sort()
 
+    # Load the delimited csv columns
     label = np.loadtxt(tracks[movement], delimiter=',')
 
+    # Create an image path given data_dir, a model from the list of models, and
+    #  a movement number
     img_path = os.path.join(data_dir, models[model], '%02d' % movement)
+    # Break apart the file path
     img_files = glob.glob(os.path.join(img_path, '*.png'))
+    # Sort
     img_files.sort()
 
+    # Create an empty array for the inputs to the network, number of images minus
+    # the number of images removed in the begining by the number of timesteps
     images = np.empty([len(img_files) - (time_step - 1), time_step], dtype='object')
 
+    # If timestep == 1 then place the file names for the image in the list of images
+    # else loop place the number of images indicated by the timestep in each row incrementing by
+    #   one per row i.e. row 1 contains images 1-5, row 2 contains images 2-6, if the timestep was 5
     if time_step == 1:
         for i, img in enumerate(img_files):
             images[i] = img_files[i]
@@ -30,9 +67,12 @@ def generate_video_frame_list(data_dir, model, movement, time_step):
             for j in range(time_step):
                 images[i, j] = img_files[i+j]
 
+    # return the list of images with the appropriate labels
     return images, label[time_step-1:]
 
-def generate_video_frame_list_sphereical(data_dir, model, movement, time_step):
+# Same thing as the first one, just didn't feel like making the entire first one
+#  in a if statement and have to pass a flag
+def generate_video_frame_list_spherical(data_dir, model, movement, time_step):
     tracks = glob.glob(os.path.join(data_dir,'sphere' ,'*.csv'))
     tracks.sort()
 
@@ -54,14 +94,17 @@ def generate_video_frame_list_sphereical(data_dir, model, movement, time_step):
     label = np.expand_dims(label,1)
     return images, label[time_step-1:]
 
-#--- SynHead Dataset
+# Class to be instantiated in the main functions
 class SynHead:
+    # Initialization function, setup the fields
     def __init__(self, time_step, bin_size, max_angle):
         self.time_step = time_step
         self.bin_size = bin_size
         self.max_angle = max_angle
 
+    # Creating the data given a data_dir, model_list, and movement_list
     def create_data(self, data_dir, model_list, move_list, ):
+        #
         full_image_list = np.empty((0, self.time_step))
         full_label_list = np.empty((0, 3))
         video_start = np.empty([len(move_list), 1])
@@ -118,7 +161,7 @@ class SynHeadSpherical:
         bgfiles = glob.glob(os.path.join('../data/synhead2_release/background', '*.jpg'))
         bg_file_index = np.empty([len(move_list), 1])
         for i, movement in enumerate(move_list):
-            image_files, labels = generate_video_frame_list_sphereical(data_dir,
+            image_files, labels = generate_video_frame_list_spherical(data_dir,
                                                                        model_list[i],
                                                                        move_list[i],
                                                                        self.time_step)
