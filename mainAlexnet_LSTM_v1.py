@@ -11,8 +11,6 @@ from sequencer import SynHeadSequencer
 from dataset import SynHead
 
 np.random.seed(42)
-tf.set_random_seed(3901)
-
 
 class Args:
     def __init__(self):

@@ -1,3 +1,10 @@
+################################################################################
+#
+#   Author: Christopher Angelini
+#
+#   Porpoise: Main file for the VGG16_LSTM architecture
+#
+################################################################################
 import tensorflow as tf
 import numpy as np
 from time import gmtime, strftime
@@ -14,7 +21,7 @@ from dataset import SynHead
 np.random.seed(42)
 tf.set_random_seed(3901)
 
-
+# Inputs class
 class Args:
     def __init__(self):
         self.brein_train_dir = '../data/synhead2_release/breitenstein/'
