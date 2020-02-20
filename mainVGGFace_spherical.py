@@ -48,7 +48,7 @@ class Args:
         self.soft_move_train_list = np.arange(len(self.soft_model_train_list)).tolist()
         self.biwi_move_test_list = np.arange(len(self.biwi_model_test_list)).tolist()
 
-        self.time_step = 1
+        self.time_step = 5
         self.epochs = 50
         self.batch_size = 10
 
@@ -88,9 +88,6 @@ if __name__=='__main__':
     # Create data for testing images
     test_images, test_bin, test_bg, test_video_start = \
         syn_head_gen.create_data(args.biwi_test_dir, args.biwi_model_test_list, args.biwi_move_test_list)
-
-    # Read in the image for size
-    image = cv2.imread(full_train_images[0, 0], 1)
 
     # Create network
     model = tf.keras.Sequential()
@@ -135,8 +132,15 @@ if __name__=='__main__':
     model.add(layers.Convolution2D(4096, (1, 1), activation='relu'))
     model.add(layers.Dropout(0.5))
     model.add(layers.Convolution2D(2622, (1, 1)))
+
     model.add(layers.Flatten())
-    model.add(layers.Dense(syn_head_gen.num_bins, activation='softmax'))
+
+    input = layers.Input(batch_shape=(args.batch_size, args.time_step, 224, 224, 3))
+    tdOut = td(model)(input)
+    lstmOut = layers.LSTM(50, activation='tanh')(flOut)
+    preds = layers.Dense(syn_head_gen.num_bins, activation='softmax')(lstmOut)
+
+    tdmodel = tf.keras.models.Model(inputs=input, outputs=preds)
 
     #model = load_model('./resnetModels/042619_055142/wholeModel.h5')
     params = {'batch_size': args.batch_size,
@@ -152,12 +156,12 @@ if __name__=='__main__':
     # create optimizer
     opt = tf.keras.optimizers.Adam(lr=0.00001)
     # Compile the created model
-    model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    tdmodel.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # Fit the model
-    model.fit_generator(generator=training_generator,
+    tdmodel.fit_generator(generator=training_generator,
                         steps_per_epoch=len(training_generator),
                         epochs=20, shuffle=True, workers=4,  use_multiprocessing=False,
                         validation_data=testing_generator, validation_steps=len(testing_generator))
     # Save the model in an H5 file
-    model.save(args.outputPath + 'wholeModel.h5')
-    model.save_weights(args.outputPath + 'weightsOnlyModel.h5')
+    tdmodel.save(args.outputPath + 'wholeModel.h5')
+    tdmodel.save_weights(args.outputPath + 'weightsOnlyModel.h5')
