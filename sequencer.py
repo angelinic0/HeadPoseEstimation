@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 # Function I found online for concatinating images
+# Combines the background image with the image of the 3D model
 def compose_image(img, bgimg):
     im    = img[:, :, :3]
     alpha = img[:, :, 2]
