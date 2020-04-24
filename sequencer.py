@@ -50,7 +50,7 @@ class SynHeadSequencer(tf.keras.utils.Sequence):
     # Returning a batch item
     def __getitem__(self, index):
         # Get range of indexes based on the training index and the batch size
-        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size-1]
 
         # For one time step
         if self.time_steps == 1:
